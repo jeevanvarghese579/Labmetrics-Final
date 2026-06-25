@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply antialiased;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+}
+
+@layer utilities {
+  .animate-modal-in {
+    animation: modal-in 0.2s ease-out;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+  .sticky-shadow {
+    box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@layer components {
+  .frozen-cell {
+    @apply sticky z-10 bg-white dark:bg-gray-900;
+    box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1);
+  }
+  .frozen-header {
+    @apply sticky z-10 bg-gray-50 dark:bg-gray-800/50;
+    box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-500; }
+
+input[type="checkbox"] {
+  @apply cursor-pointer;
+}

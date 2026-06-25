@@ -1,0 +1,47 @@
+1.2
+respsones are very slow. if i deelte a student name, or add, or any modifications, the change is seen only after refresh of site. fix it
+add universal backup rewstore in settings
+in dashboard, submitted record option shoul dbe toggle button for each students.
+for each student, the experiment can be clicked on right to their table to see possible ranks. these ranks are default (S, A+, A, B+, B, C+, C and D). but these ranks and their order can be changed in settings panel. colour for each ranks should be S-Gold, A+ and A green. B+ , B and c+ are orange and C and D are red by default. this colourt can also be chagned in settings panel next to rank editing.
+in left panel, a new batch panel should be made. it shows students  in a group based on batch. the batches are also shown as table and can do everything from dashboard.  changing something in batch should bring that change to all students in that batch. the functino to edit single student is still retained.
+
+in record sign tracker, there are two optons- signs obtained and signs required. when sign obtinaed mode is selected, the count shows the number of signs obtained by student and pressing plus will increase the number. the signs required will then decrease.
+when signs required option is selected, the count shown is how many signs is reuied by student. when clicking plus sign, the number of sign required is increased and sign obtained is decreased. it is done by substracting from the total signs required set in settings.
+
+1.3 -VSC
+default colour for s rank is bright blue
+after rank D, There should be Ab in default section. colour is Black
+the rank options are not sycing with firebase. fix it
+in dashboard, student name and roll numbe can be frozen pane so that scrolling to right always shows the name and roll no of studnets. in settings, toggle to freeze/unfreezer this name roll number should be provided. turning  the toggle on will freeze pane and turningg off will unfreeze panel
+in record sign tracker, change sign required to redraw count. the count starts from zero. the redraw count is substracted from total sign required and is considered as sign obtained. 
+reset all button in settings. it should ask for confirmation before restting
+in dashboard, experiments can be sorted based on rank in ascending or descending order. order is as per order in settings blank is below d rank.
+in dashbaord, batches can be filtered
+make sure everything is synced through firebase inclusing settings, ranks, etc
+
+1.4
+record sign traker should be in ascending order of roll number
+in dashboard, the table heading should also be able to be freezed. freeze pane settings toggle for headings should be present in settings
+in record sign tracker, a reset button for each students which makes count 0. the count become 0 even if its count of signs obtained or redraw count.
+
+
+1.5 
+in record sign tracher, a button to give max signs count should be present for each students
+
+1.6 -VSC
+Freeze Name & Roll No and Freeze Table Headings in settings should be on by deafult
+in record sign tracker, remarks column should be present for each students. tihs remarks is as same as in dashboard
+if a student has atleast one sign obtained, then automatically toggle record sumbitted as on (true)
+
+1.61
+while typing, characters are visible slow, its registering after a slight delay. also any clicking button is registering after a delay. fix it
+
+1.7-vsc cline
+data is shared accross all logged in users. i want seperate data for seperate accounts.
+
+1.71
+typinmg in reamrks column is not working proprly, if usre types fast, its not showing
+
+1.8 VSC
+
+paste error to codex
