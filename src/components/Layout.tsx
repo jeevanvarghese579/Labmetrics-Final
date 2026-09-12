@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { User } from 'firebase/auth';
 import Sidebar from './Sidebar';
 import type { Page } from '../lib/types';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Cloud, CloudOff, Loader2, Menu, Sun, Moon } from 'lucide-react';
 
 interface LayoutProps {
   currentPage: Page;
@@ -11,10 +11,11 @@ interface LayoutProps {
   toggleDark: () => void;
   user: User | null;
   onLogout: () => void;
+  syncState: 'Offline' | 'Syncing' | 'Synced' | 'Sync failed';
   children: ReactNode;
 }
 
-export default function Layout({ currentPage, onNavigate, dark, toggleDark, user, onLogout, children }: LayoutProps) {
+export default function Layout({ currentPage, onNavigate, dark, toggleDark, user, onLogout, syncState, children }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -48,6 +49,11 @@ export default function Layout({ currentPage, onNavigate, dark, toggleDark, user
             {currentPage === 'sign-tracker' && 'Record Sign Tracker'}
             {currentPage === 'settings' && 'Settings'}
           </h1>
+
+          <div className={`hidden sm:flex items-center gap-1.5 text-xs ${syncState === 'Sync failed' ? 'text-red-600' : syncState === 'Offline' ? 'text-amber-600' : 'text-gray-500 dark:text-gray-400'}`} title="Firestore offline sync status">
+            {syncState === 'Offline' ? <CloudOff size={15} /> : syncState === 'Syncing' ? <Loader2 size={15} className="animate-spin" /> : <Cloud size={15} />}
+            <span>{syncState}</span>
+          </div>
 
           <button
             onClick={toggleDark}

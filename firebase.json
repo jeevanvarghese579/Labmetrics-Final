@@ -1,6 +1,9 @@
 {
+  "firestore": {
+    "rules": "src/firestore.rules"
+  },
   "hosting": {
-        "site": "labmetrics-private",
+    "site": "labmetrics-private",
     "public": "dist",
     "ignore": [
       "firebase.json",

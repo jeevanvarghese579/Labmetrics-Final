@@ -22,7 +22,25 @@ export function useStore(user: User | null) {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [rankOptions, setRankOptionsState] = useState<RankOption[]>(DEFAULT_RANKS);
   const [loading, setLoading] = useState(true);
+  const [syncState, setSyncState] = useState<'Offline' | 'Syncing' | 'Synced' | 'Sync failed'>(navigator.onLine ? 'Syncing' : 'Offline');
   const hasLoaded = useRef(false);
+
+  const updateSyncState = (metadata: { hasPendingWrites: boolean; fromCache: boolean }) => {
+    if (!navigator.onLine) setSyncState('Offline');
+    else if (metadata.hasPendingWrites || metadata.fromCache) setSyncState('Syncing');
+    else setSyncState('Synced');
+  };
+
+  const handleSnapshotError = (path: string) => (error: { code?: string; message?: string }) => {
+    setSyncState('Sync failed');
+    console.error('[LabMetrics Firestore] Protected path failed', {
+      uid: user?.uid ?? null,
+      path,
+      code: error.code ?? null,
+      permissionDenied: error.code === 'permission-denied',
+      message: error.message ?? 'Unknown Firestore error',
+    });
+  };
 
   // Get user-specific collection paths
   const getStudentsCol = () => user ? collection(db, 'users', user.uid, 'students') : null;
@@ -70,6 +88,11 @@ export function useStore(user: User | null) {
     }
 
     setLoading(true);
+
+    const handleOffline = () => setSyncState('Offline');
+    const handleOnline = () => setSyncState('Syncing');
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
     
     // Set up real-time listeners for all collections
     const studentsCol = getStudentsCol();
@@ -80,33 +103,40 @@ export function useStore(user: User | null) {
     const unsubscries: (() => void)[] = [];
 
     if (studentsCol) {
-      const unsub = onSnapshot(query(studentsCol), (snapshot) => {
+      const path = `users/${user.uid}/students`;
+      const unsub = onSnapshot(query(studentsCol), { includeMetadataChanges: true }, (snapshot) => {
         const studentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student))
           .sort((a, b) => a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true }));
         setStudents(studentsData);
-      });
+        updateSyncState(snapshot.metadata);
+      }, handleSnapshotError(path));
       unsubscries.push(unsub);
     }
 
     if (experimentsCol) {
-      const unsub = onSnapshot(query(experimentsCol), (snapshot) => {
+      const path = `users/${user.uid}/experiments`;
+      const unsub = onSnapshot(query(experimentsCol), { includeMetadataChanges: true }, (snapshot) => {
         const experimentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Experiment))
           .sort((a, b) => a.experiment_number - b.experiment_number);
         setExperiments(experimentsData);
-      });
+        updateSyncState(snapshot.metadata);
+      }, handleSnapshotError(path));
       unsubscries.push(unsub);
     }
 
     if (gradesCol) {
-      const unsub = onSnapshot(query(gradesCol), (snapshot) => {
+      const path = `users/${user.uid}/grades`;
+      const unsub = onSnapshot(query(gradesCol), { includeMetadataChanges: true }, (snapshot) => {
         const gradesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Grade));
         setGrades(gradesData);
-      });
+        updateSyncState(snapshot.metadata);
+      }, handleSnapshotError(path));
       unsubscries.push(unsub);
     }
 
     if (settingsDoc) {
-      const unsub = onSnapshot(settingsDoc, (snapshot) => {
+      const path = `users/${user.uid}/settings/default`;
+      const unsub = onSnapshot(settingsDoc, { includeMetadataChanges: true }, (snapshot) => {
         if (snapshot.exists()) {
           const settingsData = { id: snapshot.id, ...snapshot.data() } as AppSettings;
           setSettings(settingsData);
@@ -114,7 +144,8 @@ export function useStore(user: User | null) {
             setRankOptionsState(normalizeRanks(settingsData.rank_options));
           }
         }
-      });
+        updateSyncState(snapshot.metadata);
+      }, handleSnapshotError(path));
       unsubscries.push(unsub);
     }
 
@@ -122,6 +153,8 @@ export function useStore(user: User | null) {
 
     return () => {
       unsubscries.forEach(unsub => unsub());
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
     };
   }, [user]);
 
@@ -309,7 +342,8 @@ export function useStore(user: User | null) {
     if (backup.settings) {
       const settingsDoc = getSettingsDoc();
       if (settingsDoc) {
-        const { id, ...data } = backup.settings;
+        const data: Partial<AppSettings> = { ...backup.settings };
+        delete data.id;
         batch.set(settingsDoc, { ...data, user_id: user.uid });
       }
     }
@@ -350,7 +384,7 @@ export function useStore(user: User | null) {
   };
 
   return {
-    students, experiments, grades, settings, rankOptions, loading, fetchAll,
+    students, experiments, grades, settings, rankOptions, loading, syncState, fetchAll,
     addStudent, updateStudent, deleteStudent,
     addExperiment, updateExperiment, deleteExperiment,
     upsertGrade, getGrade, updateSettings,
