@@ -18,6 +18,7 @@ import Experiments from './pages/Experiments';
 import SignTracker from './pages/SignTracker';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
+import { userPath } from './firebasePaths';
 import type { Page } from './lib/types';
 
 type AccessState = 'checking' | 'signed-out' | 'authorized' | 'offline-authorized' | 'unauthorized' | 'verification-required' | 'error';
@@ -121,10 +122,10 @@ export default function App() {
         console.info('[LabMetrics Auth] Opening protected Firestore paths', {
           uid: currentUser.uid,
           paths: [
-            `users/${currentUser.uid}/students`,
-            `users/${currentUser.uid}/experiments`,
-            `users/${currentUser.uid}/grades`,
-            `users/${currentUser.uid}/settings/default`,
+            userPath(currentUser.uid, 'students'),
+            userPath(currentUser.uid, 'experiments'),
+            userPath(currentUser.uid, 'grades'),
+            userPath(currentUser.uid, 'settings/default'),
           ],
         });
         setAccessState('authorized');

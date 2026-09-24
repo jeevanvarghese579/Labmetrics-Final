@@ -24,10 +24,10 @@ export default function SignTracker() {
   // Filter and sort students by roll_number in ascending order
   const filtered = students
     .filter(s =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.roll_number.toLowerCase().includes(search.toLowerCase())
+      String(s.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.roll_number ?? '').toLowerCase().includes(search.toLowerCase())
     )
-    .sort((a, b) => a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true }));
+    .sort((a, b) => String(a.roll_number ?? '').localeCompare(String(b.roll_number ?? ''), undefined, { numeric: true }));
 
   // Redraw count = total_signs_required - signs_obtained
   const totalObtained = students.reduce((a, s) => a + s.signs_obtained, 0);

@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { query, where, onSnapshot, addDoc, updateDoc, deleteDoc, getDoc, setDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import type { Student, Experiment, Grade, AppSettings, RankOption } from '../lib/types';
 import { DEFAULT_RANKS, normalizeRanks } from '../lib/ranks';
 import type { User } from 'firebase/auth';
+import { APP_KEY, userCollection, userDocument, userPath } from '../firebasePaths';
 
 export interface AppBackup {
+  appKey?: typeof APP_KEY | string;
   version: 1;
   exported_at: string;
   students: Student[];
@@ -43,10 +45,10 @@ export function useStore(user: User | null) {
   };
 
   // Get user-specific collection paths
-  const getStudentsCol = () => user ? collection(db, 'users', user.uid, 'students') : null;
-  const getExperimentsCol = () => user ? collection(db, 'users', user.uid, 'experiments') : null;
-  const getGradesCol = () => user ? collection(db, 'users', user.uid, 'grades') : null;
-  const getSettingsDoc = () => user ? doc(db, 'users', user.uid, 'settings', 'default') : null;
+  const getStudentsCol = () => user ? userCollection(user.uid, 'students') : null;
+  const getExperimentsCol = () => user ? userCollection(user.uid, 'experiments') : null;
+  const getGradesCol = () => user ? userCollection(user.uid, 'grades') : null;
+  const getSettingsDoc = () => user ? userDocument(user.uid, 'settings', 'default') : null;
 
   const fetchAll = useCallback(async () => {
     if (!user) {
@@ -103,10 +105,10 @@ export function useStore(user: User | null) {
     const unsubscries: (() => void)[] = [];
 
     if (studentsCol) {
-      const path = `users/${user.uid}/students`;
+      const path = userPath(user.uid, 'students');
       const unsub = onSnapshot(query(studentsCol), { includeMetadataChanges: true }, (snapshot) => {
         const studentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Student))
-          .sort((a, b) => a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true }));
+          .sort((a, b) => String(a.roll_number ?? '').localeCompare(String(b.roll_number ?? ''), undefined, { numeric: true }));
         setStudents(studentsData);
         updateSyncState(snapshot.metadata);
       }, handleSnapshotError(path));
@@ -114,7 +116,7 @@ export function useStore(user: User | null) {
     }
 
     if (experimentsCol) {
-      const path = `users/${user.uid}/experiments`;
+      const path = userPath(user.uid, 'experiments');
       const unsub = onSnapshot(query(experimentsCol), { includeMetadataChanges: true }, (snapshot) => {
         const experimentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Experiment))
           .sort((a, b) => a.experiment_number - b.experiment_number);
@@ -125,7 +127,7 @@ export function useStore(user: User | null) {
     }
 
     if (gradesCol) {
-      const path = `users/${user.uid}/grades`;
+      const path = userPath(user.uid, 'grades');
       const unsub = onSnapshot(query(gradesCol), { includeMetadataChanges: true }, (snapshot) => {
         const gradesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Grade));
         setGrades(gradesData);
@@ -135,7 +137,7 @@ export function useStore(user: User | null) {
     }
 
     if (settingsDoc) {
-      const path = `users/${user.uid}/settings/default`;
+      const path = userPath(user.uid, 'settings/default');
       const unsub = onSnapshot(settingsDoc, { includeMetadataChanges: true }, (snapshot) => {
         if (snapshot.exists()) {
           const settingsData = { id: snapshot.id, ...snapshot.data() } as AppSettings;
@@ -177,13 +179,13 @@ export function useStore(user: User | null) {
       ? true 
       : (data.submitted_record !== undefined ? data.submitted_record : currentStudent?.submitted_record ?? false);
     const patch = { ...data, submitted_record: autoSubmitted, updated_at: new Date().toISOString() };
-    const studentDoc = doc(db, 'users', user.uid, 'students', id);
+    const studentDoc = userDocument(user.uid, 'students', id);
     await updateDoc(studentDoc, patch);
   };
 
   const deleteStudent = async (id: string) => {
     if (!user) throw new Error('User not authenticated');
-    const studentDoc = doc(db, 'users', user.uid, 'students', id);
+    const studentDoc = userDocument(user.uid, 'students', id);
     await deleteDoc(studentDoc);
     // Delete associated grades
     const gradesCol = getGradesCol();
@@ -211,13 +213,13 @@ export function useStore(user: User | null) {
   const updateExperiment = async (id: string, data: Partial<Experiment>) => {
     if (!user) throw new Error('User not authenticated');
     const patch = { ...data, updated_at: new Date().toISOString() };
-    const experimentDoc = doc(db, 'users', user.uid, 'experiments', id);
+    const experimentDoc = userDocument(user.uid, 'experiments', id);
     await updateDoc(experimentDoc, patch);
   };
 
   const deleteExperiment = async (id: string) => {
     if (!user) throw new Error('User not authenticated');
-    const experimentDoc = doc(db, 'users', user.uid, 'experiments', id);
+    const experimentDoc = userDocument(user.uid, 'experiments', id);
     await deleteDoc(experimentDoc);
     // Delete associated grades
     const gradesCol = getGradesCol();
@@ -283,6 +285,7 @@ export function useStore(user: User | null) {
   };
 
   const exportBackup = (): AppBackup => ({
+    appKey: APP_KEY,
     version: 1,
     exported_at: new Date().toISOString(),
     students,
@@ -296,6 +299,9 @@ export function useStore(user: User | null) {
     if (!user) throw new Error('User not authenticated');
     if (!backup || !Array.isArray(backup.students) || !Array.isArray(backup.experiments) || !Array.isArray(backup.grades)) {
       throw new Error('Invalid backup file');
+    }
+    if (backup.appKey !== undefined && backup.appKey !== APP_KEY) {
+      throw new Error('This backup belongs to a different application');
     }
 
     const batch = writeBatch(db);
@@ -323,19 +329,19 @@ export function useStore(user: User | null) {
     // Add new data
     backup.students.forEach(student => {
       const { id, ...data } = student;
-      const docRef = doc(db, 'users', user.uid, 'students', id);
+      const docRef = userDocument(user.uid, 'students', id);
       batch.set(docRef, { ...data, user_id: user.uid });
     });
 
     backup.experiments.forEach(experiment => {
       const { id, ...data } = experiment;
-      const docRef = doc(db, 'users', user.uid, 'experiments', id);
+      const docRef = userDocument(user.uid, 'experiments', id);
       batch.set(docRef, { ...data, user_id: user.uid });
     });
 
     backup.grades.forEach(grade => {
       const { id, ...data } = grade;
-      const docRef = doc(db, 'users', user.uid, 'grades', id);
+      const docRef = userDocument(user.uid, 'grades', id);
       batch.set(docRef, { ...data, user_id: user.uid });
     });
 
