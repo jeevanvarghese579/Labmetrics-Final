@@ -1,7 +1,4 @@
 {
-  "firestore": {
-    "rules": "src/firestore.rules"
-  },
   "hosting": {
     "site": "labmetrics-private",
     "public": "dist",
