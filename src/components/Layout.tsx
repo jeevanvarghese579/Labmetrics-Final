@@ -32,7 +32,7 @@ export default function Layout({ currentPage, onNavigate, dark, toggleDark, user
         onLogout={onLogout}
       />
 
-      <div className={`transition-all duration-300 ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+      <div className={`min-h-screen transition-all duration-300 ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
         <header className="sticky top-0 z-30 h-14 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 flex items-center px-4 gap-3">
           <button
             onClick={() => setMobileOpen(true)}
@@ -64,7 +64,7 @@ export default function Layout({ currentPage, onNavigate, dark, toggleDark, user
           </button>
         </header>
 
-        <main className="p-4 md:p-6 max-w-[1600px] mx-auto">
+        <main className="min-h-[calc(100dvh-3.5rem)] p-4 md:p-6 max-w-[1600px] mx-auto">
           {children}
         </main>
       </div>

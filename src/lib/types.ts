@@ -33,6 +33,7 @@ export interface Grade {
   student_id: string;
   experiment_id: string;
   grade: string;
+  grades?: string[];
   created_at: string;
   updated_at: string;
 }

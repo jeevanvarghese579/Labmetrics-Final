@@ -2,14 +2,14 @@ import { useState, useMemo } from 'react';
 import { useApp } from '../hooks/useAppContext';
 import Modal from '../components/Modal';
 import StudentForm from '../components/StudentForm';
+import GradePicker from '../components/GradePicker';
 import type { Student, StudentFormData } from '../lib/types';
 import { COLUMN_LABELS } from '../lib/types';
 import { Search, Edit2, Trash2, ChevronUp, ChevronDown, Plus, Download, Upload, Eye, EyeOff, Filter, BarChart3 } from 'lucide-react';
 import { exportStudentsCSV, importStudentsCSV } from '../lib/csv';
-import { rankStyle } from '../lib/ranks';
 
 export default function Dashboard() {
-  const { students, experiments, settings, rankOptions, addStudent, updateStudent, deleteStudent, getGrade, upsertGrade, updateSettings } = useApp();
+  const { students, experiments, settings, rankOptions, addStudent, updateStudent, deleteStudent, getGrade, getGrades, upsertGrade, upsertGrades, updateSettings } = useApp();
   const totalSignsRequired = settings?.total_signs_required ?? 10;
   const freezeNameRoll = settings?.freeze_name_roll ?? false;
   const freezeTableHeadings = settings?.freeze_table_headings ?? false;
@@ -24,7 +24,6 @@ export default function Dashboard() {
   const [showCols, setShowCols] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [editCell, setEditCell] = useState<{ id: string; field: string; value: string | boolean | number } | null>(null);
-  const [rankPicker, setRankPicker] = useState<{ studentId: string; experimentId: string } | null>(null);
 
   // Get unique batches for filter
   const batches = useMemo(() => {
@@ -40,7 +39,7 @@ export default function Dashboard() {
 
   // Get average grade for an experiment (for sorting purposes)
   const getGradeForExperiment = (expId: string): string => {
-    const grades = students.map(s => getGrade(s.id, expId)).filter(Boolean);
+    const grades = students.map(s => getGrades(s.id, expId)[0]).filter(Boolean);
     if (grades.length === 0) return '';
     // Return the most common grade
     const gradeCounts = grades.reduce((acc, g) => {
@@ -146,8 +145,14 @@ export default function Dashboard() {
     }
     if (col.startsWith('exp_')) {
       const expId = col.replace('exp_', '');
-      const grade = getGrade(student.id, expId);
-      return grade ? <span className="font-semibold" style={rankStyle(rankOptions, grade)}>{grade}</span> : <span className="text-gray-400">-</span>;
+      return (
+        <GradePicker
+          grades={getGrades(student.id, expId)}
+          rankOptions={rankOptions}
+          onChange={next => upsertGrades(student.id, expId, next)}
+          label={`Grades for ${student.name}`}
+        />
+      );
     }
     return String(getStudentField(student, col) ?? '-');
   };
@@ -250,7 +255,7 @@ export default function Dashboard() {
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto max-h-[60vh]">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100dvh-12rem)] min-h-[320px]">
           <table className="w-full text-sm">
             <thead>
               <tr className={`border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 ${freezeTableHeadings ? 'sticky top-0 z-20' : ''}`}>
@@ -301,11 +306,8 @@ export default function Dashboard() {
                     return (
                       <td
                         key={col}
-                        className={`relative px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap ${col === 'name' ? 'font-medium' : ''} ${col.startsWith('exp_') ? 'cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20' : ''} ${isFrozen ? 'sticky z-10 bg-white dark:bg-gray-900' : ''}`}
+                        className={`relative px-3 py-2 text-gray-700 dark:text-gray-300 whitespace-nowrap ${col === 'name' ? 'font-medium' : ''} ${isFrozen ? 'sticky z-10 bg-white dark:bg-gray-900' : ''}`}
                         style={isFrozen ? { left: idx === 0 ? 0 : 180 } : undefined}
-                        onClick={() => {
-                          if (col.startsWith('exp_')) setRankPicker({ studentId: student.id, experimentId: col.replace('exp_', '') });
-                        }}
                         onDoubleClick={() => {
                           if (col === 'missing_signs' || col === 'submitted_record' || col === 'bought_record' || col.startsWith('exp_')) return;
                           const val = col.startsWith('exp_') ? getGrade(student.id, col.replace('exp_', '')) : getStudentField(student, col);
@@ -322,35 +324,6 @@ export default function Dashboard() {
                             onKeyDown={e => { if (e.key === 'Enter') handleCellEdit(); if (e.key === 'Escape') setEditCell(null); }}
                           />
                         ) : renderCellValue(student, col)}
-                        {rankPicker?.studentId === student.id && rankPicker.experimentId === col.replace('exp_', '') && (
-                          <div className="absolute right-2 top-8 z-20 min-w-28 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-1 shadow-lg">
-                            <button
-                              onClick={async e => {
-                                e.stopPropagation();
-                                await upsertGrade(student.id, rankPicker.experimentId, '');
-                                setRankPicker(null);
-                              }}
-                              className="w-full rounded-md px-2 py-1 text-left text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                              Clear
-                            </button>
-                            {rankOptions.map(rank => (
-                              <button
-                                key={rank.label}
-                                onClick={async e => {
-                                  e.stopPropagation();
-                                  await upsertGrade(student.id, rankPicker.experimentId, rank.label);
-                                  setRankPicker(null);
-                                }}
-                                className="flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs font-semibold hover:bg-gray-100 dark:hover:bg-gray-800"
-                                style={{ color: rank.color }}
-                              >
-                                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: rank.color }} />
-                                {rank.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </td>
                     );
                   })}

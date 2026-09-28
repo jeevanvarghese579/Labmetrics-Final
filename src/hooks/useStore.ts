@@ -232,8 +232,14 @@ export function useStore(user: User | null) {
   };
 
   const upsertGrade = async (studentId: string, experimentId: string, grade: string) => {
+    await upsertGrades(studentId, experimentId, grade ? [grade] : []);
+  };
+
+  const upsertGrades = async (studentId: string, experimentId: string, nextGrades: string[]) => {
     if (!user) throw new Error('User not authenticated');
     const now = new Date().toISOString();
+    const uniqueGrades = Array.from(new Set(nextGrades.filter(Boolean)));
+    const grade = uniqueGrades[0] ?? '';
     
     // Check if grade exists
     const gradesCol = getGradesCol();
@@ -245,13 +251,14 @@ export function useStore(user: User | null) {
     if (!snapshot.empty) {
       // Update existing
       const gradeDoc = snapshot.docs[0];
-      await updateDoc(gradeDoc.ref, { grade, updated_at: now });
+      await updateDoc(gradeDoc.ref, { grade, grades: uniqueGrades, updated_at: now });
     } else {
       // Create new
       await addDoc(gradesCol, {
         student_id: studentId,
         experiment_id: experimentId,
         grade,
+        grades: uniqueGrades,
         user_id: user.uid,
         created_at: now,
         updated_at: now,
@@ -353,8 +360,14 @@ export function useStore(user: User | null) {
   };
 
   const getGrade = (studentId: string, experimentId: string): string => {
+    return getGrades(studentId, experimentId).join(' / ');
+  };
+
+  const getGrades = (studentId: string, experimentId: string): string[] => {
     const g = grades.find(g => g.student_id === studentId && g.experiment_id === experimentId);
-    return g?.grade ?? '';
+    if (!g) return [];
+    if (Array.isArray(g.grades)) return g.grades.filter(Boolean);
+    return g.grade ? [g.grade] : [];
   };
 
   const resetAll = async () => {
@@ -387,7 +400,7 @@ export function useStore(user: User | null) {
     students, experiments, grades, settings, rankOptions, loading, syncState, fetchAll,
     addStudent, updateStudent, deleteStudent,
     addExperiment, updateExperiment, deleteExperiment,
-    upsertGrade, getGrade, updateSettings,
+    upsertGrade, upsertGrades, getGrade, getGrades, updateSettings,
     updateRankOptions, exportBackup, restoreBackup,
     resetAll,
   };

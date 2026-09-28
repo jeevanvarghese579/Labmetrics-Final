@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../hooks/useAppContext';
 import Modal from '../components/Modal';
+import GradePicker from '../components/GradePicker';
 import type { Experiment, ExperimentFormData } from '../lib/types';
 import { Plus, Edit2, Trash2, Check, X, Download, Upload } from 'lucide-react';
 import { exportExperimentsCSV, importExperimentsCSV } from '../lib/csv';
@@ -10,22 +11,17 @@ const EMPTY_FORM: ExperimentFormData = {
 };
 
 export default function Experiments() {
-  const { experiments, students, rankOptions, addExperiment, updateExperiment, deleteExperiment, upsertGrade, getGrade } = useApp();
+  const { experiments, students, rankOptions, addExperiment, updateExperiment, deleteExperiment, upsertGrades, getGrade, getGrades } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [editExp, setEditExp] = useState<Experiment | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [selectedExp, setSelectedExp] = useState<string | null>(null);
-  const [gradeInput, setGradeInput] = useState<Record<string, string>>({});
 
   const handleSave = async (data: ExperimentFormData) => {
     if (editExp) await updateExperiment(editExp.id, data);
     else await addExperiment(data);
     setEditExp(null);
     setShowAdd(false);
-  };
-
-  const handleGradeSave = async (studentId: string, experimentId: string, grade: string) => {
-    await upsertGrade(studentId, experimentId, grade);
   };
 
   const selected = selectedExp ? experiments.find(e => e.id === selectedExp) : null;
@@ -102,26 +98,17 @@ export default function Experiments() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {students.map(student => {
-                  const currentGrade = getGrade(student.id, selected.id);
                   return (
                     <tr key={student.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                       <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{student.name}</td>
                       <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{student.roll_number}</td>
                       <td className="px-3 py-2">
-                        <select
-                          value={gradeInput[student.id] ?? currentGrade ?? ''}
-                          onChange={e => setGradeInput({ ...gradeInput, [student.id]: e.target.value })}
-                          onBlur={() => {
-                            const val = gradeInput[student.id];
-                            if (val !== undefined) handleGradeSave(student.id, selected.id, val);
-                          }}
-                          className="px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-teal-500 outline-none"
-                        >
-                          <option value="">-</option>
-                          {rankOptions.map(g => (
-                            <option key={g.label} value={g.label}>{g.label}</option>
-                          ))}
-                        </select>
+                        <GradePicker
+                          grades={getGrades(student.id, selected.id)}
+                          rankOptions={rankOptions}
+                          onChange={next => upsertGrades(student.id, selected.id, next)}
+                          label={`Grades for ${student.name}`}
+                        />
                       </td>
                     </tr>
                   );
