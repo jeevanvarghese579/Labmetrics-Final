@@ -16,10 +16,10 @@ export default function StudentList() {
 
   const filtered = useMemo(() =>
     students.filter(s =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.roll_number.toLowerCase().includes(search.toLowerCase()) ||
-      s.class.toLowerCase().includes(search.toLowerCase()) ||
-      s.batch_number.toLowerCase().includes(search.toLowerCase())
+      String(s.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.roll_number ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.class ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.batch_number ?? '').toLowerCase().includes(search.toLowerCase())
     ), [students, search]);
 
   const handleSave = async (data: StudentFormData) => {

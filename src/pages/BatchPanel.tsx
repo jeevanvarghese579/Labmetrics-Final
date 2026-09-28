@@ -24,13 +24,13 @@ export default function BatchPanel() {
     return Array.from(grouped.entries())
       .map(([name, members]) => ({
         name,
-        members: members.sort((a, b) => a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true })),
+        members: members.sort((a, b) => String(a.roll_number ?? '').localeCompare(String(b.roll_number ?? ''), undefined, { numeric: true })),
       }))
       .filter(batch =>
         batch.name.toLowerCase().includes(search.toLowerCase()) ||
         batch.members.some(student =>
-          student.name.toLowerCase().includes(search.toLowerCase()) ||
-          student.roll_number.toLowerCase().includes(search.toLowerCase())
+          String(student.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+          String(student.roll_number ?? '').toLowerCase().includes(search.toLowerCase())
         )
       )
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));

@@ -71,18 +71,9 @@ service cloud.firestore {
       allow read, write: if hasCollageMakerAccess(uid);
     }
 
-    // LabMetrics retains its existing per-user paths, but only the four app-owned
-    // subcollections receive this app's canonical Access Manager permission.
-    match /users/{uid}/students/{document=**} {
-      allow read, write: if hasLabMetricsAccess(uid);
-    }
-    match /users/{uid}/experiments/{document=**} {
-      allow read, write: if hasLabMetricsAccess(uid);
-    }
-    match /users/{uid}/grades/{document=**} {
-      allow read, write: if hasLabMetricsAccess(uid);
-    }
-    match /users/{uid}/settings/{document=**} {
+    // LabMetrics owns this namespace. Reset/restore operations are restricted
+    // to this app and cannot touch another application's user collections.
+    match /apps/labMetrics/users/{uid}/{document=**} {
       allow read, write: if hasLabMetricsAccess(uid);
     }
 

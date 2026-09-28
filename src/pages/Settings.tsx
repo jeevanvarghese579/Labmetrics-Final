@@ -45,10 +45,10 @@ export default function Settings({ dark, toggleDark }: { dark: boolean; toggleDa
   };
 
   const handleResetAll = async () => {
-    if (window.confirm('Are you sure you want to reset all data? This will delete all students, experiments, and grades. This action cannot be undone.')) {
+    if (window.confirm('Reset this account\'s LabMetrics data? This deletes only LabMetrics students, experiments, and grades. Other apps and LabMetrics settings are not affected. This action cannot be undone.')) {
       try {
         await resetAll();
-        setRestoreStatus('All data reset successfully');
+        setRestoreStatus('LabMetrics students, experiments, and grades were reset successfully');
       } catch (error) {
         setRestoreStatus(error instanceof Error ? error.message : 'Reset failed');
       }
@@ -213,7 +213,7 @@ export default function Settings({ dark, toggleDark }: { dark: boolean; toggleDa
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-red-600 dark:text-red-400">Reset All Data</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delete all students, experiments, and grades</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Delete only this account's LabMetrics students, experiments, and grades</p>
           </div>
           <button
             onClick={handleResetAll}

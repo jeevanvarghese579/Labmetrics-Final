@@ -81,9 +81,9 @@ export default function Dashboard() {
 
   const filteredStudents = useMemo(() => {
     let list = students.filter(s =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.roll_number.toLowerCase().includes(search.toLowerCase()) ||
-      s.class.toLowerCase().includes(search.toLowerCase())
+      String(s.name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.roll_number ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      String(s.class ?? '').toLowerCase().includes(search.toLowerCase())
     );
     // Apply batch filter
     if (batchFilter !== 'all') {
