@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import type { RankOption } from '../lib/types';
 import { rankStyle } from '../lib/ranks';
 
@@ -62,10 +62,14 @@ export default function GradePicker({ grades, rankOptions, onChange, label = 'Se
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  const toggleGrade = async (grade: string) => {
-    const next = localGrades.includes(grade)
-      ? localGrades.filter(item => item !== grade)
-      : [...localGrades, grade];
+  const addGrade = async (grade: string) => {
+    const next = [...localGrades, grade];
+    setLocalGrades(next);
+    await onChange(next);
+  };
+
+  const removeGrade = async (index: number) => {
+    const next = localGrades.filter((_, itemIndex) => itemIndex !== index);
     setLocalGrades(next);
     await onChange(next);
   };
@@ -97,7 +101,7 @@ export default function GradePicker({ grades, rankOptions, onChange, label = 'Se
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div>
             <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{label}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Tap once to add or remove</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Tap a grade to add another</p>
           </div>
           <button type="button" onClick={() => setOpen(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800" aria-label="Done">
             <X size={18} />
@@ -105,26 +109,43 @@ export default function GradePicker({ grades, rankOptions, onChange, label = 'Se
         </div>
         <div className="grid grid-cols-2 gap-2">
           {rankOptions.map(rank => {
-            const selected = localGrades.includes(rank.label);
+            const count = localGrades.filter(grade => grade === rank.label).length;
             return (
               <button
                 type="button"
                 key={rank.label}
-                onClick={() => void toggleGrade(rank.label)}
-                className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors ${selected ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/30' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'}`}
+                onClick={() => void addGrade(rank.label)}
+                className={`flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors ${count ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/30' : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'}`}
                 style={{ color: rank.color }}
               >
                 <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: rank.color }} />
                 <span className="flex-1">{rank.label}</span>
-                {selected && <Check size={15} />}
+                {count > 0 && <span className="rounded-full bg-teal-600 px-1.5 py-0.5 text-[10px] leading-none text-white">{count}</span>}
               </button>
             );
           })}
         </div>
         {localGrades.length > 0 && (
-          <button type="button" onClick={() => void clearGrades()} className="mt-2 w-full rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
-            Clear all grades
-          </button>
+          <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+            <p className="mb-2 px-1 text-xs font-medium text-gray-500 dark:text-gray-400">Selected — tap × to remove one</p>
+            <div className="flex flex-wrap gap-1.5">
+              {localGrades.map((grade, index) => (
+                <button
+                  type="button"
+                  key={`${grade}-${index}`}
+                  onClick={() => void removeGrade(index)}
+                  className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs font-semibold hover:bg-red-50 dark:bg-gray-800 dark:hover:bg-red-900/20"
+                  style={rankStyle(rankOptions, grade)}
+                  aria-label={`Remove one ${grade} grade`}
+                >
+                  {grade}<X size={12} />
+                </button>
+              ))}
+            </div>
+            <button type="button" onClick={() => void clearGrades()} className="mt-2 w-full rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20">
+              Clear all grades
+            </button>
+          </div>
         )}
         {mobile && (
           <button type="button" onClick={() => setOpen(false)} className="mt-2 w-full rounded-lg bg-teal-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-teal-700">
@@ -146,8 +167,8 @@ export default function GradePicker({ grades, rankOptions, onChange, label = 'Se
         aria-haspopup="dialog"
         aria-expanded={open}
       >
-        {localGrades.length ? localGrades.map(grade => (
-          <span key={grade} className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold dark:bg-gray-800" style={rankStyle(rankOptions, grade)}>
+        {localGrades.length ? localGrades.map((grade, index) => (
+          <span key={`${grade}-${index}`} className="rounded-md bg-gray-100 px-1.5 py-0.5 text-xs font-semibold dark:bg-gray-800" style={rankStyle(rankOptions, grade)}>
             {grade}
           </span>
         )) : <span className="text-gray-400">-</span>}

@@ -238,8 +238,8 @@ export function useStore(user: User | null) {
   const upsertGrades = async (studentId: string, experimentId: string, nextGrades: string[]) => {
     if (!user) throw new Error('User not authenticated');
     const now = new Date().toISOString();
-    const uniqueGrades = Array.from(new Set(nextGrades.filter(Boolean)));
-    const grade = uniqueGrades[0] ?? '';
+    const savedGrades = nextGrades.filter(Boolean);
+    const grade = savedGrades[0] ?? '';
     
     // Check if grade exists
     const gradesCol = getGradesCol();
@@ -251,14 +251,14 @@ export function useStore(user: User | null) {
     if (!snapshot.empty) {
       // Update existing
       const gradeDoc = snapshot.docs[0];
-      await updateDoc(gradeDoc.ref, { grade, grades: uniqueGrades, updated_at: now });
+      await updateDoc(gradeDoc.ref, { grade, grades: savedGrades, updated_at: now });
     } else {
       // Create new
       await addDoc(gradesCol, {
         student_id: studentId,
         experiment_id: experimentId,
         grade,
-        grades: uniqueGrades,
+        grades: savedGrades,
         user_id: user.uid,
         created_at: now,
         updated_at: now,
