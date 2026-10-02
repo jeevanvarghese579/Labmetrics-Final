@@ -102,6 +102,7 @@ export default function Login({ user, access, accessState, accessError, onCheckA
   };
 
   const handleRequest = async () => {
+    if (!window.confirm('Send an access request to the administrator?')) return;
     setBusy(true);
     setError(null);
     try {
@@ -173,6 +174,7 @@ export default function Login({ user, access, accessState, accessError, onCheckA
                   {busy ? 'Sending…' : 'Request Access'}
                 </button>
               ) : null}
+              <a href="https://itsjeevanvarghese.web.app/contact" target="_blank" rel="noopener noreferrer" className="block text-center text-sm font-medium text-teal-600 hover:text-teal-700">Contact developer</a>
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={onCheckAgain} disabled={busy} className="py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 disabled:opacity-50">Check Again</button>
                 <button onClick={() => void signOut(auth)} disabled={busy} className="py-2.5 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-200 disabled:opacity-50">Sign Out</button>
